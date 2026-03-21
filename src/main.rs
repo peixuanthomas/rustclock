@@ -68,36 +68,17 @@ struct ClockApp {
     active_countdown: Option<CountdownTimer>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum CountdownTrack {
-    Hour,
-    Minute,
-    Second,
-}
-
-impl CountdownTrack {
-    fn cycle_seconds(self) -> f32 {
-        match self {
-            Self::Hour => 12.0 * 60.0 * 60.0,
-            Self::Minute => 60.0 * 60.0,
-            Self::Second => 60.0,
-        }
-    }
-}
-
 struct CountdownTimer {
     started_at: Instant,
     total_duration: Duration,
-    track: CountdownTrack,
     finished_at: Option<Instant>,
 }
 
 impl CountdownTimer {
-    fn new(total_seconds: u64, track: CountdownTrack) -> Self {
+    fn new(total_seconds: u64) -> Self {
         Self {
             started_at: Instant::now(),
             total_duration: Duration::from_secs(total_seconds),
-            track,
             finished_at: None,
         }
     }
@@ -174,15 +155,7 @@ impl ClockApp {
             return;
         }
 
-        let track = if hours > 0 {
-            CountdownTrack::Hour
-        } else if minutes > 0 {
-            CountdownTrack::Minute
-        } else {
-            CountdownTrack::Second
-        };
-
-        self.active_countdown = Some(CountdownTimer::new(total_seconds, track));
+        self.active_countdown = Some(CountdownTimer::new(total_seconds));
     }
 }
 
@@ -731,12 +704,14 @@ fn draw_countdown_arc(
         return;
     }
 
-    let (start_ratio, arc_radius, stroke_width) = match countdown.track {
-        CountdownTrack::Hour => (hour_ratio, radius * 0.56, 8.0),
-        CountdownTrack::Minute => (minute_ratio, radius * 0.78, 6.0),
-        CountdownTrack::Second => (second_ratio, radius * 0.90, 4.0),
+    let (start_ratio, arc_radius, stroke_width, cycle_seconds) = if remaining_seconds < 60.0 {
+        (second_ratio, radius * 0.90, 4.0, 60.0)
+    } else if remaining_seconds < 60.0 * 60.0 {
+        (minute_ratio, radius * 0.78, 6.0, 60.0 * 60.0)
+    } else {
+        (hour_ratio, radius * 0.56, 8.0, 12.0 * 60.0 * 60.0)
     };
-    let sweep_ratio = (remaining_seconds / countdown.track.cycle_seconds()).clamp(0.0, 0.999);
+    let sweep_ratio = (remaining_seconds / cycle_seconds).clamp(0.0, 0.999);
     if sweep_ratio <= 0.0 {
         return;
     }
