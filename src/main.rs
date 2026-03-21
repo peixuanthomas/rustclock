@@ -35,7 +35,29 @@ impl DialStyle {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum FaceStyle {
+    ClassicHands,
+    LuminousTicks,
+    TriangleSweep,
+    OrbitDots,
+    ArcBands,
+}
+
+impl FaceStyle {
+    fn label(self) -> &'static str {
+        match self {
+            Self::ClassicHands => "Classic hands",
+            Self::LuminousTicks => "Luminous ticks",
+            Self::TriangleSweep => "Triangle sweep",
+            Self::OrbitDots => "Orbit dots",
+            Self::ArcBands => "Arc bands",
+        }
+    }
+}
+
 struct ClockApp {
+    face_style: FaceStyle,
     dial_style: DialStyle,
     smooth_hands: bool,
     show_second_hand: bool,
@@ -103,6 +125,7 @@ impl ClockApp {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         configure_visuals(&cc.egui_ctx);
         Self {
+            face_style: FaceStyle::ClassicHands,
             dial_style: DialStyle::Arabic,
             smooth_hands: true,
             show_second_hand: true,
@@ -205,6 +228,7 @@ impl eframe::App for ClockApp {
                         ui.painter(),
                         analog_rect,
                         &now,
+                        self.face_style,
                         self.dial_style,
                         self.show_second_hand,
                         self.smooth_hands,
@@ -227,6 +251,7 @@ impl eframe::App for ClockApp {
                         ui.painter(),
                         analog_rect,
                         &now,
+                        self.face_style,
                         self.dial_style,
                         self.show_second_hand,
                         self.smooth_hands,
@@ -284,6 +309,7 @@ fn draw_analog_clock(
     painter: &Painter,
     rect: Rect,
     now: &DateTime<Local>,
+    face_style: FaceStyle,
     dial_style: DialStyle,
     show_second_hand: bool,
     smooth_hands: bool,
@@ -297,71 +323,7 @@ fn draw_analog_clock(
     let radius = square.width().min(square.height()) * 0.42;
     let accent = Color32::from_rgb(255, 189, 92);
     let dial_text = Color32::from_rgb(235, 240, 248);
-
-    painter.circle_filled(
-        center,
-        radius * 1.08,
-        Color32::from_rgba_unmultiplied(255, 255, 255, 10),
-    );
-    painter.circle_filled(center, radius, Color32::from_rgb(15, 20, 32));
-    painter.circle_stroke(
-        center,
-        radius,
-        Stroke::new(2.0, Color32::from_rgba_unmultiplied(255, 255, 255, 90)),
-    );
-    painter.circle_stroke(
-        center,
-        radius * 0.92,
-        Stroke::new(1.0, Color32::from_rgba_unmultiplied(120, 146, 220, 40)),
-    );
-
-    for minute_mark in 0..60 {
-        let ratio = minute_mark as f32 / 60.0;
-        let angle = ratio_to_angle(ratio);
-        let (sin, cos) = angle.sin_cos();
-        let outer = Pos2::new(
-            center.x + cos * radius * 0.94,
-            center.y + sin * radius * 0.94,
-        );
-        let (inner_radius, stroke) = if minute_mark % 15 == 0 {
-            (
-                radius * 0.74,
-                Stroke::new(4.0, Color32::from_rgba_unmultiplied(255, 255, 255, 220)),
-            )
-        } else if minute_mark % 5 == 0 {
-            (
-                radius * 0.79,
-                Stroke::new(2.6, Color32::from_rgba_unmultiplied(255, 255, 255, 170)),
-            )
-        } else {
-            (
-                radius * 0.86,
-                Stroke::new(1.2, Color32::from_rgba_unmultiplied(165, 177, 203, 96)),
-            )
-        };
-        let inner = Pos2::new(center.x + cos * inner_radius, center.y + sin * inner_radius);
-        painter.line_segment([inner, outer], stroke);
-    }
-
-    for (index, numeral) in dial_style.numerals().iter().enumerate() {
-        let ratio = index as f32 / 12.0;
-        let angle = ratio_to_angle(ratio);
-        let (sin, cos) = angle.sin_cos();
-        let label_radius = radius * 0.63;
-        let pos = Pos2::new(center.x + cos * label_radius, center.y + sin * label_radius);
-        let font_size = if dial_style == DialStyle::Roman {
-            radius * 0.11
-        } else {
-            radius * 0.12
-        };
-        painter.text(
-            pos,
-            Align2::CENTER_CENTER,
-            *numeral,
-            FontId::new(font_size, FontFamily::Proportional),
-            dial_text,
-        );
-    }
+    draw_face_background(painter, center, radius);
 
     let precise_second_value = now.second() as f32 + now.timestamp_subsec_millis() as f32 / 1_000.0;
     let precise_minute_value = now.minute() as f32 + precise_second_value / 60.0;
@@ -395,6 +357,236 @@ fn draw_analog_clock(
         );
     }
 
+    match face_style {
+        FaceStyle::ClassicHands => {
+            draw_standard_ticks(painter, center, radius, None, false);
+            draw_numerals(painter, center, radius, dial_style, dial_text, 1.0);
+            draw_hour_minute_hands(painter, center, radius, hour_ratio, minute_ratio);
+            if show_second_hand {
+                draw_second_hand(painter, center, radius, second_ratio, accent);
+            }
+        }
+        FaceStyle::LuminousTicks => {
+            let highlight_ratio = if show_second_hand {
+                Some(second_ratio * 60.0)
+            } else {
+                None
+            };
+            draw_standard_ticks(painter, center, radius, highlight_ratio, true);
+            draw_numerals(
+                painter,
+                center,
+                radius,
+                dial_style,
+                Color32::from_rgba_unmultiplied(235, 240, 248, 170),
+                0.85,
+            );
+            draw_hour_minute_hands(painter, center, radius, hour_ratio, minute_ratio);
+        }
+        FaceStyle::TriangleSweep => {
+            draw_standard_ticks(painter, center, radius, None, false);
+            draw_numerals(
+                painter,
+                center,
+                radius,
+                dial_style,
+                Color32::from_rgba_unmultiplied(235, 240, 248, 210),
+                0.95,
+            );
+            draw_hour_minute_hands(painter, center, radius, hour_ratio, minute_ratio);
+            if show_second_hand {
+                draw_triangle_indicator(painter, center, radius, second_ratio, accent);
+            }
+        }
+        FaceStyle::OrbitDots => {
+            draw_orbit_tracks(painter, center, radius);
+            draw_numerals(
+                painter,
+                center,
+                radius,
+                dial_style,
+                Color32::from_rgba_unmultiplied(235, 240, 248, 130),
+                0.82,
+            );
+            draw_orbit_dot(
+                painter,
+                center,
+                radius * 0.47,
+                hour_ratio,
+                9.0,
+                Color32::from_rgb(245, 248, 252),
+            );
+            draw_orbit_dot(
+                painter,
+                center,
+                radius * 0.69,
+                minute_ratio,
+                7.0,
+                Color32::from_rgb(205, 214, 231),
+            );
+            if show_second_hand {
+                draw_orbit_dot(painter, center, radius * 0.87, second_ratio, 5.5, accent);
+            }
+            painter.circle_filled(center, radius * 0.03, Color32::from_rgb(245, 248, 252));
+        }
+        FaceStyle::ArcBands => {
+            draw_arc_tracks(painter, center, radius, show_second_hand);
+            draw_numerals(
+                painter,
+                center,
+                radius,
+                dial_style,
+                Color32::from_rgba_unmultiplied(235, 240, 248, 96),
+                0.72,
+            );
+            draw_progress_band(
+                painter,
+                center,
+                radius * 0.48,
+                hour_ratio,
+                Stroke::new(10.0, Color32::from_rgb(245, 248, 252)),
+            );
+            draw_progress_band(
+                painter,
+                center,
+                radius * 0.68,
+                minute_ratio,
+                Stroke::new(8.0, Color32::from_rgb(205, 214, 231)),
+            );
+            if show_second_hand {
+                draw_progress_band(
+                    painter,
+                    center,
+                    radius * 0.88,
+                    second_ratio,
+                    Stroke::new(5.0, accent),
+                );
+            }
+            painter.circle_filled(center, radius * 0.03, Color32::from_rgb(245, 248, 252));
+        }
+    }
+}
+
+fn draw_face_background(painter: &Painter, center: Pos2, radius: f32) {
+    painter.circle_filled(
+        center,
+        radius * 1.08,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 10),
+    );
+    painter.circle_filled(center, radius, Color32::from_rgb(15, 20, 32));
+    painter.circle_stroke(
+        center,
+        radius,
+        Stroke::new(2.0, Color32::from_rgba_unmultiplied(255, 255, 255, 90)),
+    );
+    painter.circle_stroke(
+        center,
+        radius * 0.92,
+        Stroke::new(1.0, Color32::from_rgba_unmultiplied(120, 146, 220, 40)),
+    );
+}
+
+fn draw_standard_ticks(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    highlight_second: Option<f32>,
+    dim_rest: bool,
+) {
+    for minute_mark in 0..60 {
+        let ratio = minute_mark as f32 / 60.0;
+        let angle = ratio_to_angle(ratio);
+        let (sin, cos) = angle.sin_cos();
+        let outer = Pos2::new(
+            center.x + cos * radius * 0.94,
+            center.y + sin * radius * 0.94,
+        );
+        let (inner_radius, base_width, base_color) = if minute_mark % 15 == 0 {
+            (
+                radius * 0.74,
+                4.0,
+                Color32::from_rgba_unmultiplied(255, 255, 255, if dim_rest { 92 } else { 220 }),
+            )
+        } else if minute_mark % 5 == 0 {
+            (
+                radius * 0.79,
+                2.6,
+                Color32::from_rgba_unmultiplied(255, 255, 255, if dim_rest { 76 } else { 170 }),
+            )
+        } else {
+            (
+                radius * 0.86,
+                1.2,
+                Color32::from_rgba_unmultiplied(165, 177, 203, if dim_rest { 38 } else { 96 }),
+            )
+        };
+        let inner = Pos2::new(center.x + cos * inner_radius, center.y + sin * inner_radius);
+
+        let stroke = if let Some(highlight) = highlight_second {
+            let glow = tick_glow(minute_mark as f32, highlight);
+            let width = base_width + glow * 2.8;
+            let color = blend_color(base_color, Color32::from_rgb(255, 84, 84), glow);
+            Stroke::new(width, color)
+        } else {
+            Stroke::new(base_width, base_color)
+        };
+        painter.line_segment([inner, outer], stroke);
+    }
+}
+
+fn tick_glow(mark: f32, highlight: f32) -> f32 {
+    let diff = (mark - highlight).abs();
+    let wrapped = diff.min(60.0 - diff);
+    (1.0 - wrapped / 3.0).clamp(0.0, 1.0)
+}
+
+fn blend_color(base: Color32, target: Color32, amount: f32) -> Color32 {
+    let blend = amount.clamp(0.0, 1.0);
+    let lerp = |a: u8, b: u8| (a as f32 + (b as f32 - a as f32) * blend).round() as u8;
+    Color32::from_rgba_unmultiplied(
+        lerp(base.r(), target.r()),
+        lerp(base.g(), target.g()),
+        lerp(base.b(), target.b()),
+        lerp(base.a(), target.a()),
+    )
+}
+
+fn draw_numerals(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    dial_style: DialStyle,
+    color: Color32,
+    scale: f32,
+) {
+    for (index, numeral) in dial_style.numerals().iter().enumerate() {
+        let ratio = index as f32 / 12.0;
+        let angle = ratio_to_angle(ratio);
+        let (sin, cos) = angle.sin_cos();
+        let label_radius = radius * 0.63;
+        let pos = Pos2::new(center.x + cos * label_radius, center.y + sin * label_radius);
+        let font_size = if dial_style == DialStyle::Roman {
+            radius * 0.11 * scale
+        } else {
+            radius * 0.12 * scale
+        };
+        painter.text(
+            pos,
+            Align2::CENTER_CENTER,
+            *numeral,
+            FontId::new(font_size, FontFamily::Proportional),
+            color,
+        );
+    }
+}
+
+fn draw_hour_minute_hands(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    hour_ratio: f32,
+    minute_ratio: f32,
+) {
     draw_hand(
         painter,
         center,
@@ -413,23 +605,116 @@ fn draw_analog_clock(
         0.10,
         Stroke::new(4.2, Color32::from_rgb(205, 214, 231)),
     );
+    painter.circle_filled(center, radius * 0.05, Color32::from_rgb(245, 248, 252));
+}
 
-    if show_second_hand {
-        draw_hand(
+fn draw_second_hand(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    second_ratio: f32,
+    accent: Color32,
+) {
+    draw_hand(
+        painter,
+        center,
+        radius,
+        second_ratio,
+        0.88,
+        0.18,
+        Stroke::new(2.2, accent),
+    );
+    let counterweight = point_on_circle(center, radius * 0.18, second_ratio + 0.5);
+    painter.circle_filled(counterweight, radius * 0.018, accent);
+    painter.circle_filled(center, radius * 0.025, accent);
+}
+
+fn draw_triangle_indicator(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    ratio: f32,
+    color: Color32,
+) {
+    let tip = point_on_circle(center, radius * 0.98, ratio);
+    let base_center = point_on_circle(center, radius * 0.86, ratio);
+    let angle = ratio_to_angle(ratio);
+    let tangent = Vec2::new(-(angle.sin()), angle.cos()) * (radius * 0.045);
+    let points = vec![tip, base_center + tangent, base_center - tangent];
+    painter.add(egui::Shape::convex_polygon(points, color, Stroke::NONE));
+    painter.circle_filled(
+        tip,
+        radius * 0.015,
+        Color32::from_rgba_unmultiplied(255, 84, 84, 120),
+    );
+}
+
+fn draw_orbit_tracks(painter: &Painter, center: Pos2, radius: f32) {
+    for track_radius in [radius * 0.47, radius * 0.69, radius * 0.87] {
+        painter.circle_stroke(
+            center,
+            track_radius,
+            Stroke::new(1.2, Color32::from_rgba_unmultiplied(170, 180, 205, 52)),
+        );
+    }
+}
+
+fn draw_orbit_dot(
+    painter: &Painter,
+    center: Pos2,
+    track_radius: f32,
+    ratio: f32,
+    dot_radius: f32,
+    color: Color32,
+) {
+    let pos = point_on_circle(center, track_radius, ratio);
+    painter.circle_filled(
+        pos,
+        dot_radius * 1.9,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 32),
+    );
+    painter.circle_filled(pos, dot_radius, color);
+}
+
+fn draw_arc_tracks(painter: &Painter, center: Pos2, radius: f32, show_seconds: bool) {
+    for track_radius in [radius * 0.48, radius * 0.68, radius * 0.88] {
+        if !show_seconds && track_radius > radius * 0.8 {
+            continue;
+        }
+        draw_arc(
             painter,
             center,
-            radius,
-            second_ratio,
-            0.88,
-            0.18,
-            Stroke::new(2.2, accent),
+            track_radius,
+            0.0,
+            1.0,
+            Stroke::new(1.4, Color32::from_rgba_unmultiplied(160, 172, 198, 34)),
         );
-        let counterweight = point_on_circle(center, radius * 0.18, second_ratio + 0.5);
-        painter.circle_filled(counterweight, radius * 0.018, accent);
     }
+}
 
-    painter.circle_filled(center, radius * 0.05, Color32::from_rgb(245, 248, 252));
-    painter.circle_filled(center, radius * 0.025, accent);
+fn draw_progress_band(painter: &Painter, center: Pos2, radius: f32, ratio: f32, stroke: Stroke) {
+    if ratio <= 0.0 {
+        return;
+    }
+    draw_arc(
+        painter,
+        center,
+        radius,
+        0.0,
+        ratio,
+        Stroke::new(
+            stroke.width + 4.0,
+            Color32::from_rgba_unmultiplied(
+                stroke.color.r(),
+                stroke.color.g(),
+                stroke.color.b(),
+                24,
+            ),
+        ),
+    );
+    draw_arc(painter, center, radius, 0.0, ratio, stroke);
+    let tip = point_on_circle(center, radius, ratio);
+    painter.circle_filled(tip, stroke.width * 0.7, stroke.color);
 }
 
 fn draw_countdown_arc(
@@ -639,6 +924,36 @@ fn draw_info_panel(ui: &mut egui::Ui, rect: Rect, now: &DateTime<Local>, app: &m
                             .color(Color32::from_rgb(244, 247, 252)),
                     );
                     ui.add_space(10.0);
+
+                    egui::ComboBox::from_label("Face")
+                        .selected_text(app.face_style.label())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut app.face_style,
+                                FaceStyle::ClassicHands,
+                                FaceStyle::ClassicHands.label(),
+                            );
+                            ui.selectable_value(
+                                &mut app.face_style,
+                                FaceStyle::LuminousTicks,
+                                FaceStyle::LuminousTicks.label(),
+                            );
+                            ui.selectable_value(
+                                &mut app.face_style,
+                                FaceStyle::TriangleSweep,
+                                FaceStyle::TriangleSweep.label(),
+                            );
+                            ui.selectable_value(
+                                &mut app.face_style,
+                                FaceStyle::OrbitDots,
+                                FaceStyle::OrbitDots.label(),
+                            );
+                            ui.selectable_value(
+                                &mut app.face_style,
+                                FaceStyle::ArcBands,
+                                FaceStyle::ArcBands.label(),
+                            );
+                        });
 
                     egui::ComboBox::from_label("Dial")
                         .selected_text(app.dial_style.label())
