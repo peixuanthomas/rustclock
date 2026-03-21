@@ -65,18 +65,22 @@ struct ClockApp {
     countdown_hours_input: String,
     countdown_minutes_input: String,
     countdown_seconds_input: String,
-    active_countdown: Option<CountdownTimer>,
+    countdowns: Vec<CountdownTimer>,
+    selected_countdown_id: Option<u64>,
+    next_countdown_id: u64,
 }
 
 struct CountdownTimer {
+    id: u64,
     started_at: Instant,
     total_duration: Duration,
     finished_at: Option<Instant>,
 }
 
 impl CountdownTimer {
-    fn new(total_seconds: u64) -> Self {
+    fn new(id: u64, total_seconds: u64) -> Self {
         Self {
+            id,
             started_at: Instant::now(),
             total_duration: Duration::from_secs(total_seconds),
             finished_at: None,
@@ -114,7 +118,9 @@ impl ClockApp {
             countdown_hours_input: String::new(),
             countdown_minutes_input: String::new(),
             countdown_seconds_input: String::new(),
-            active_countdown: None,
+            countdowns: Vec::new(),
+            selected_countdown_id: None,
+            next_countdown_id: 1,
         }
     }
 
@@ -134,11 +140,19 @@ impl ClockApp {
         }
     }
 
-    fn refresh_countdown(&mut self) {
-        if let Some(timer) = &mut self.active_countdown {
+    fn refresh_countdowns(&mut self) {
+        for timer in &mut self.countdowns {
             if timer.finished_at.is_none() && timer.started_at.elapsed() >= timer.total_duration {
                 timer.finished_at = Some(Instant::now());
             }
+        }
+
+        if let Some(selected_id) = self.selected_countdown_id {
+            if !self.countdowns.iter().any(|timer| timer.id == selected_id) {
+                self.selected_countdown_id = self.countdowns.first().map(|timer| timer.id);
+            }
+        } else {
+            self.selected_countdown_id = self.countdowns.first().map(|timer| timer.id);
         }
     }
 
@@ -155,17 +169,35 @@ impl ClockApp {
             return;
         }
 
-        self.active_countdown = Some(CountdownTimer::new(total_seconds));
+        let id = self.next_countdown_id;
+        self.next_countdown_id += 1;
+        self.countdowns.push(CountdownTimer::new(id, total_seconds));
+        self.selected_countdown_id = Some(id);
+        self.countdown_hours_input.clear();
+        self.countdown_minutes_input.clear();
+        self.countdown_seconds_input.clear();
+    }
+
+    fn selected_countdown(&self) -> Option<&CountdownTimer> {
+        let selected_id = self.selected_countdown_id?;
+        self.countdowns.iter().find(|timer| timer.id == selected_id)
+    }
+
+    fn delete_countdown(&mut self, id: u64) {
+        self.countdowns.retain(|timer| timer.id != id);
+        if self.selected_countdown_id == Some(id) {
+            self.selected_countdown_id = self.countdowns.first().map(|timer| timer.id);
+        }
     }
 }
 
 impl eframe::App for ClockApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.handle_shortcuts(ctx);
-        self.refresh_countdown();
+        self.refresh_countdowns();
 
         let now = Local::now();
-        let repaint_after = if self.active_countdown.is_some() || self.smooth_hands {
+        let repaint_after = if !self.countdowns.is_empty() || self.smooth_hands {
             Duration::from_millis(16)
         } else {
             let millis = 1_000_u32
@@ -205,7 +237,7 @@ impl eframe::App for ClockApp {
                         self.dial_style,
                         self.show_second_hand,
                         self.smooth_hands,
-                        self.active_countdown.as_ref(),
+                        self.selected_countdown(),
                     );
                     draw_info_panel(ui, info_rect, &now, self);
                 } else {
@@ -228,7 +260,7 @@ impl eframe::App for ClockApp {
                         self.dial_style,
                         self.show_second_hand,
                         self.smooth_hands,
-                        self.active_countdown.as_ref(),
+                        self.selected_countdown(),
                     );
                     draw_info_panel(ui, info_rect, &now, self);
                 }
@@ -985,55 +1017,122 @@ fn draw_countdown_input(ui: &mut egui::Ui, value: &mut String, hint: &str, max_l
 }
 
 fn draw_active_countdown(ui: &mut egui::Ui, app: &mut ClockApp) {
-    let Some(timer) = app.active_countdown.as_ref() else {
+    if app.countdowns.is_empty() {
         ui.label(
-            RichText::new("No active countdown")
+            RichText::new("No active countdowns")
                 .size(18.0)
                 .color(Color32::from_rgb(118, 132, 158)),
         );
         return;
-    };
-
-    let remaining_display = format_duration_hms(timer.remaining_seconds_display());
-    let is_finished = timer.is_finished();
-    let should_flash_on = timer
-        .finished_at
-        .map(|finished_at| (finished_at.elapsed().as_millis() / 350) % 2 == 0)
-        .unwrap_or(false);
-    let countdown_color = if is_finished {
-        if should_flash_on {
-            Color32::from_rgb(255, 84, 84)
-        } else {
-            Color32::from_rgb(110, 42, 42)
-        }
-    } else {
-        Color32::from_rgb(255, 189, 92)
-    };
-
-    let mut delete_requested = false;
-    ui.horizontal(|ui| {
-        ui.label(
-            RichText::new(remaining_display)
-                .size(38.0)
-                .family(FontFamily::Monospace)
-                .color(countdown_color),
-        );
-        ui.add_space(8.0);
-        if ui.button("Delete").clicked() {
-            delete_requested = true;
-        }
-    });
-
-    if is_finished {
-        ui.label(
-            RichText::new("Countdown finished")
-                .size(16.0)
-                .color(Color32::from_rgb(255, 129, 129)),
-        );
     }
 
-    if delete_requested {
-        app.active_countdown = None;
+    let selected_id = app.selected_countdown_id;
+    let rows: Vec<_> = app
+        .countdowns
+        .iter()
+        .map(|timer| {
+            let is_finished = timer.is_finished();
+            let should_flash_on = timer
+                .finished_at
+                .map(|finished_at| (finished_at.elapsed().as_millis() / 350) % 2 == 0)
+                .unwrap_or(false);
+            let countdown_color = if is_finished {
+                if should_flash_on {
+                    Color32::from_rgb(255, 84, 84)
+                } else {
+                    Color32::from_rgb(110, 42, 42)
+                }
+            } else {
+                Color32::from_rgb(255, 189, 92)
+            };
+
+            (
+                timer.id,
+                format_duration_hms(timer.remaining_seconds_display()),
+                is_finished,
+                countdown_color,
+            )
+        })
+        .collect();
+
+    let mut select_requested = None;
+    let mut delete_requested = None;
+
+    egui::ScrollArea::vertical()
+        .max_height(220.0)
+        .show(ui, |ui| {
+            for row in rows.chunks(2) {
+                ui.columns(2, |columns| {
+                    for (column_index, column_ui) in columns.iter_mut().enumerate() {
+                        if let Some((id, remaining_display, is_finished, countdown_color)) =
+                            row.get(column_index)
+                        {
+                            Frame::NONE
+                                .fill(if Some(*id) == selected_id {
+                                    Color32::from_rgba_unmultiplied(255, 255, 255, 18)
+                                } else {
+                                    Color32::from_rgba_unmultiplied(255, 255, 255, 8)
+                                })
+                                .stroke(Stroke::new(
+                                    1.0,
+                                    if Some(*id) == selected_id {
+                                        Color32::from_rgba_unmultiplied(255, 84, 84, 96)
+                                    } else {
+                                        Color32::from_rgba_unmultiplied(255, 255, 255, 16)
+                                    },
+                                ))
+                                .corner_radius(16)
+                                .inner_margin(12)
+                                .show(column_ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        let response = ui.selectable_label(
+                                            Some(*id) == selected_id,
+                                            RichText::new(remaining_display)
+                                                .size(28.0)
+                                                .family(FontFamily::Monospace)
+                                                .color(*countdown_color),
+                                        );
+                                        if response.clicked() {
+                                            select_requested = Some(*id);
+                                        }
+                                        ui.add_space(6.0);
+                                        if ui.button("Delete").clicked() {
+                                            delete_requested = Some(*id);
+                                        }
+                                        ui.add_space(4.0);
+                                        ui.label(
+                                            RichText::new(if *is_finished {
+                                                "Finished"
+                                            } else if Some(*id) == selected_id {
+                                                "Shown on analog face"
+                                            } else {
+                                                "Click to show on face"
+                                            })
+                                            .size(13.0)
+                                            .color(if *is_finished {
+                                                Color32::from_rgb(255, 129, 129)
+                                            } else if Some(*id) == selected_id {
+                                                Color32::from_rgb(255, 196, 196)
+                                            } else {
+                                                Color32::from_rgb(118, 132, 158)
+                                            }),
+                                        );
+                                    });
+                                });
+                        } else {
+                            column_ui.add_space(1.0);
+                        }
+                    }
+                });
+                ui.add_space(8.0);
+            }
+        });
+
+    if let Some(id) = select_requested {
+        app.selected_countdown_id = Some(id);
+    }
+    if let Some(id) = delete_requested {
+        app.delete_countdown(id);
     }
 }
 
@@ -1087,7 +1186,7 @@ fn weekday_label(weekday: chrono::Weekday) -> &'static str {
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Rust Desktop Clock")
+            .with_title("Clock")
             .with_fullscreen(true)
             .with_decorations(false)
             .with_inner_size([1600.0, 900.0])
@@ -1096,7 +1195,7 @@ fn main() -> eframe::Result<()> {
     };
 
     eframe::run_native(
-        "Rust Desktop Clock",
+        "Clock",
         native_options,
         Box::new(|cc| Ok(Box::new(ClockApp::new(cc)))),
     )
