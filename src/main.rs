@@ -17,6 +17,7 @@ const ARABIC_NUMERALS: [&str; 12] = [
 enum DialStyle {
     Arabic,
     Roman,
+    None,
 }
 
 impl DialStyle {
@@ -24,6 +25,7 @@ impl DialStyle {
         match self {
             Self::Arabic => "Arabic numerals",
             Self::Roman => "Roman numerals",
+            Self::None => "No numerals",
         }
     }
 
@@ -31,6 +33,7 @@ impl DialStyle {
         match self {
             Self::Arabic => &ARABIC_NUMERALS,
             Self::Roman => &ROMAN_NUMERALS,
+            Self::None => &ARABIC_NUMERALS,
         }
     }
 }
@@ -372,36 +375,34 @@ fn draw_analog_clock(
             }
         }
         FaceStyle::LuminousTicks => {
-            let highlight_ratio = if show_second_hand {
-                Some(second_ratio * 60.0)
-            } else {
-                None
-            };
-            draw_standard_ticks(painter, center, radius, highlight_ratio, true);
-            draw_numerals(
+            draw_luminous_ticks_face(
                 painter,
                 center,
                 radius,
                 dial_style,
-                Color32::from_rgba_unmultiplied(235, 240, 248, 170),
-                0.85,
+                hour_ratio,
+                minute_ratio,
+                show_second_hand.then_some(second_ratio),
             );
-            draw_hour_minute_hands(painter, center, radius, hour_ratio, minute_ratio);
         }
         FaceStyle::TriangleSweep => {
-            draw_standard_ticks(painter, center, radius, None, false);
+            draw_standard_ticks(painter, center, radius, None, true);
             draw_numerals(
                 painter,
                 center,
                 radius,
                 dial_style,
-                Color32::from_rgba_unmultiplied(235, 240, 248, 210),
-                0.95,
+                Color32::from_rgba_unmultiplied(235, 240, 248, 156),
+                0.88,
             );
-            draw_hour_minute_hands(painter, center, radius, hour_ratio, minute_ratio);
-            if show_second_hand {
-                draw_triangle_indicator(painter, center, radius, second_ratio, accent);
-            }
+            draw_triangle_sweep_face(
+                painter,
+                center,
+                radius,
+                hour_ratio,
+                minute_ratio,
+                show_second_hand.then_some(second_ratio),
+            );
         }
         FaceStyle::OrbitDots => {
             draw_orbit_tracks(painter, center, radius);
@@ -419,7 +420,7 @@ fn draw_analog_clock(
                 radius * 0.47,
                 hour_ratio,
                 9.0,
-                Color32::from_rgb(245, 248, 252),
+                Color32::from_rgb(168, 172, 181),
             );
             draw_orbit_dot(
                 painter,
@@ -427,49 +428,222 @@ fn draw_analog_clock(
                 radius * 0.69,
                 minute_ratio,
                 7.0,
-                Color32::from_rgb(205, 214, 231),
+                Color32::from_rgb(212, 156, 108),
             );
             if show_second_hand {
-                draw_orbit_dot(painter, center, radius * 0.87, second_ratio, 5.5, accent);
+                draw_orbit_dot(
+                    painter,
+                    center,
+                    radius * 0.87,
+                    second_ratio,
+                    5.8,
+                    Color32::from_rgb(82, 154, 232),
+                );
+                let earth_highlight = point_on_circle(center, radius * 0.87, second_ratio);
+                painter.circle_filled(
+                    Pos2::new(earth_highlight.x + 2.0, earth_highlight.y - 1.5),
+                    1.7,
+                    Color32::from_rgb(106, 208, 122),
+                );
             }
-            painter.circle_filled(center, radius * 0.03, Color32::from_rgb(245, 248, 252));
+            painter.circle_filled(
+                center,
+                radius * 0.07,
+                Color32::from_rgba_unmultiplied(255, 199, 92, 48),
+            );
+            painter.circle_filled(center, radius * 0.042, Color32::from_rgb(255, 202, 96));
+            painter.circle_filled(center, radius * 0.025, Color32::from_rgb(255, 239, 176));
         }
         FaceStyle::ArcBands => {
-            draw_arc_tracks(painter, center, radius, show_second_hand);
-            draw_numerals(
+            draw_arc_bands_face(
                 painter,
                 center,
                 radius,
                 dial_style,
-                Color32::from_rgba_unmultiplied(235, 240, 248, 96),
-                0.72,
-            );
-            draw_progress_band(
-                painter,
-                center,
-                radius * 0.48,
                 hour_ratio,
-                Stroke::new(10.0, Color32::from_rgb(245, 248, 252)),
-            );
-            draw_progress_band(
-                painter,
-                center,
-                radius * 0.68,
                 minute_ratio,
-                Stroke::new(8.0, Color32::from_rgb(205, 214, 231)),
+                show_second_hand.then_some(second_ratio),
             );
-            if show_second_hand {
-                draw_progress_band(
-                    painter,
-                    center,
-                    radius * 0.88,
-                    second_ratio,
-                    Stroke::new(5.0, accent),
-                );
-            }
-            painter.circle_filled(center, radius * 0.03, Color32::from_rgb(245, 248, 252));
         }
     }
+}
+
+fn draw_triangle_sweep_face(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    hour_ratio: f32,
+    minute_ratio: f32,
+    second_ratio: Option<f32>,
+) {
+    draw_orbit_tracks(painter, center, radius);
+
+    draw_triangle_lane(
+        painter,
+        center,
+        radius * 0.48,
+        hour_ratio,
+        16.0,
+        Color32::from_rgb(231, 238, 252),
+    );
+    draw_triangle_lane(
+        painter,
+        center,
+        radius * 0.70,
+        minute_ratio,
+        13.0,
+        Color32::from_rgb(112, 237, 228),
+    );
+    if let Some(second_ratio) = second_ratio {
+        draw_triangle_lane(
+            painter,
+            center,
+            radius * 0.89,
+            second_ratio,
+            10.0,
+            Color32::from_rgb(255, 138, 112),
+        );
+    }
+
+    painter.circle_filled(
+        center,
+        radius * 0.055,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 24),
+    );
+    painter.circle_filled(center, radius * 0.024, Color32::from_rgb(245, 248, 252));
+}
+
+fn draw_arc_bands_face(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    dial_style: DialStyle,
+    hour_ratio: f32,
+    minute_ratio: f32,
+    second_ratio: Option<f32>,
+) {
+    draw_arc_tracks(painter, center, radius, second_ratio.is_some());
+    draw_numerals(
+        painter,
+        center,
+        radius,
+        dial_style,
+        Color32::from_rgba_unmultiplied(235, 240, 248, 80),
+        0.70,
+    );
+
+    draw_sweeping_band(
+        painter,
+        center,
+        radius * 0.46,
+        0.0,
+        hour_ratio,
+        Stroke::new(2.8, Color32::from_rgb(240, 244, 252)),
+    );
+    draw_sweeping_band(
+        painter,
+        center,
+        radius * 0.66,
+        0.0,
+        minute_ratio,
+        Stroke::new(2.2, Color32::from_rgb(122, 236, 226)),
+    );
+    if let Some(second_ratio) = second_ratio {
+        draw_sweeping_band(
+            painter,
+            center,
+            radius * 0.86,
+            0.0,
+            second_ratio,
+            Stroke::new(1.5, Color32::from_rgb(255, 136, 112)),
+        );
+    }
+
+    painter.circle_filled(
+        center,
+        radius * 0.10,
+        Color32::from_rgba_unmultiplied(132, 150, 196, 16),
+    );
+    painter.circle_filled(center, radius * 0.03, Color32::from_rgb(240, 244, 252));
+}
+
+fn draw_triangle_lane(
+    painter: &Painter,
+    center: Pos2,
+    track_radius: f32,
+    ratio: f32,
+    size: f32,
+    color: Color32,
+) {
+    painter.circle_stroke(
+        center,
+        track_radius,
+        Stroke::new(
+            1.2,
+            Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 26),
+        ),
+    );
+    let glow_pos = point_on_circle(center, track_radius, ratio);
+    painter.circle_filled(
+        glow_pos,
+        size * 1.25,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 26),
+    );
+    draw_triangle_indicator(painter, center, track_radius, ratio, color, size);
+}
+
+fn draw_sweeping_band(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    start_ratio: f32,
+    end_ratio: f32,
+    stroke: Stroke,
+) {
+    if end_ratio <= start_ratio {
+        return;
+    }
+    draw_wrapped_arc(
+        painter,
+        center,
+        radius,
+        start_ratio,
+        end_ratio,
+        Stroke::new(
+            stroke.width + 1.3,
+            Color32::from_rgba_unmultiplied(
+                stroke.color.r(),
+                stroke.color.g(),
+                stroke.color.b(),
+                18,
+            ),
+        ),
+    );
+    draw_wrapped_arc(
+        painter,
+        center,
+        radius,
+        start_ratio,
+        end_ratio,
+        Stroke::new(
+            stroke.width + 0.5,
+            Color32::from_rgba_unmultiplied(
+                stroke.color.r(),
+                stroke.color.g(),
+                stroke.color.b(),
+                82,
+            ),
+        ),
+    );
+    draw_wrapped_arc(painter, center, radius, start_ratio, end_ratio, stroke);
+
+    let head = point_on_circle(center, radius, end_ratio);
+    painter.circle_filled(
+        head,
+        stroke.width * 0.95,
+        Color32::from_rgba_unmultiplied(stroke.color.r(), stroke.color.g(), stroke.color.b(), 44),
+    );
+    painter.circle_filled(head, stroke.width * 0.55, stroke.color);
 }
 
 fn draw_face_background(painter: &Painter, center: Pos2, radius: f32) {
@@ -489,6 +663,78 @@ fn draw_face_background(painter: &Painter, center: Pos2, radius: f32) {
         radius * 0.92,
         Stroke::new(1.0, Color32::from_rgba_unmultiplied(120, 146, 220, 40)),
     );
+}
+
+fn draw_luminous_ticks_face(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    dial_style: DialStyle,
+    hour_ratio: f32,
+    minute_ratio: f32,
+    second_ratio: Option<f32>,
+) {
+    painter.circle_filled(
+        center,
+        radius * 0.96,
+        Color32::from_rgba_unmultiplied(56, 94, 160, 10),
+    );
+
+    draw_luminous_ring(
+        painter,
+        center,
+        radius * 0.50,
+        radius * 0.58,
+        hour_ratio,
+        12,
+        0.16,
+        2.8,
+        Color32::from_rgba_unmultiplied(124, 170, 255, 44),
+        Color32::from_rgb(146, 198, 255),
+    );
+    draw_luminous_ring(
+        painter,
+        center,
+        radius * 0.66,
+        radius * 0.76,
+        minute_ratio,
+        60,
+        0.13,
+        2.2,
+        Color32::from_rgba_unmultiplied(104, 232, 222, 34),
+        Color32::from_rgb(108, 244, 228),
+    );
+    if let Some(second_ratio) = second_ratio {
+        draw_luminous_ring(
+            painter,
+            center,
+            radius * 0.82,
+            radius * 0.94,
+            second_ratio,
+            60,
+            0.09,
+            1.9,
+            Color32::from_rgba_unmultiplied(255, 118, 92, 34),
+            Color32::from_rgb(255, 138, 112),
+        );
+    }
+
+    draw_numerals(
+        painter,
+        center,
+        radius,
+        dial_style,
+        Color32::from_rgba_unmultiplied(214, 229, 255, 118),
+        0.82,
+    );
+
+    painter.circle_filled(
+        center,
+        radius * 0.11,
+        Color32::from_rgba_unmultiplied(132, 190, 255, 30),
+    );
+    painter.circle_filled(center, radius * 0.055, Color32::from_rgb(229, 241, 255));
+    painter.circle_filled(center, radius * 0.028, Color32::from_rgb(106, 221, 255));
 }
 
 fn draw_standard_ticks(
@@ -539,6 +785,82 @@ fn draw_standard_ticks(
     }
 }
 
+fn draw_luminous_ring(
+    painter: &Painter,
+    center: Pos2,
+    inner_radius: f32,
+    outer_radius: f32,
+    ratio: f32,
+    divisions: usize,
+    tail_span: f32,
+    stroke_width: f32,
+    base_color: Color32,
+    glow_color: Color32,
+) {
+    let ring_radius = (inner_radius + outer_radius) * 0.5;
+
+    draw_wrapped_arc(
+        painter,
+        center,
+        ring_radius,
+        ratio - tail_span,
+        ratio,
+        Stroke::new(
+            stroke_width + 6.0,
+            Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 16),
+        ),
+    );
+    draw_wrapped_arc(
+        painter,
+        center,
+        ring_radius,
+        ratio - tail_span * 0.84,
+        ratio,
+        Stroke::new(
+            stroke_width + 1.4,
+            Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 150),
+        ),
+    );
+
+    for mark in 0..divisions {
+        let mark_ratio = mark as f32 / divisions as f32;
+        let glow = flow_glow(mark_ratio, ratio, tail_span);
+        let angle = ratio_to_angle(mark_ratio);
+        let (sin, cos) = angle.sin_cos();
+        let inner = Pos2::new(center.x + cos * inner_radius, center.y + sin * inner_radius);
+        let outer = Pos2::new(center.x + cos * outer_radius, center.y + sin * outer_radius);
+        let width = if divisions == 12 {
+            3.0
+        } else if mark % 5 == 0 {
+            2.2
+        } else {
+            1.2
+        };
+        let color = blend_color(base_color, glow_color, glow);
+        painter.line_segment([inner, outer], Stroke::new(width + glow * 2.2, color));
+    }
+
+    let head = point_on_circle(center, ring_radius, ratio);
+    painter.circle_filled(
+        head,
+        stroke_width * 2.6,
+        Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 38),
+    );
+    painter.circle_filled(head, stroke_width * 1.15, glow_color);
+}
+
+fn flow_glow(mark_ratio: f32, head_ratio: f32, span: f32) -> f32 {
+    let normalized_mark = normalize_ratio(mark_ratio);
+    let normalized_head = normalize_ratio(head_ratio);
+    let delta = (normalized_head - normalized_mark).rem_euclid(1.0);
+    if delta > span {
+        0.0
+    } else {
+        let falloff = 1.0 - delta / span;
+        falloff * falloff
+    }
+}
+
 fn tick_glow(mark: f32, highlight: f32) -> f32 {
     let diff = (mark - highlight).abs();
     let wrapped = diff.min(60.0 - diff);
@@ -564,6 +886,10 @@ fn draw_numerals(
     color: Color32,
     scale: f32,
 ) {
+    if dial_style == DialStyle::None {
+        return;
+    }
+
     for (index, numeral) in dial_style.numerals().iter().enumerate() {
         let ratio = index as f32 / 12.0;
         let angle = ratio_to_angle(ratio);
@@ -640,17 +966,18 @@ fn draw_triangle_indicator(
     radius: f32,
     ratio: f32,
     color: Color32,
+    size: f32,
 ) {
-    let tip = point_on_circle(center, radius * 0.98, ratio);
-    let base_center = point_on_circle(center, radius * 0.86, ratio);
+    let tip = point_on_circle(center, radius + size * 0.62, ratio);
+    let base_center = point_on_circle(center, radius - size * 0.48, ratio);
     let angle = ratio_to_angle(ratio);
-    let tangent = Vec2::new(-(angle.sin()), angle.cos()) * (radius * 0.045);
+    let tangent = Vec2::new(-(angle.sin()), angle.cos()) * (size * 0.56);
     let points = vec![tip, base_center + tangent, base_center - tangent];
     painter.add(egui::Shape::convex_polygon(points, color, Stroke::NONE));
     painter.circle_filled(
         tip,
-        radius * 0.015,
-        Color32::from_rgba_unmultiplied(255, 84, 84, 120),
+        size * 0.22,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 110),
     );
 }
 
@@ -695,31 +1022,6 @@ fn draw_arc_tracks(painter: &Painter, center: Pos2, radius: f32, show_seconds: b
             Stroke::new(1.4, Color32::from_rgba_unmultiplied(160, 172, 198, 34)),
         );
     }
-}
-
-fn draw_progress_band(painter: &Painter, center: Pos2, radius: f32, ratio: f32, stroke: Stroke) {
-    if ratio <= 0.0 {
-        return;
-    }
-    draw_arc(
-        painter,
-        center,
-        radius,
-        0.0,
-        ratio,
-        Stroke::new(
-            stroke.width + 4.0,
-            Color32::from_rgba_unmultiplied(
-                stroke.color.r(),
-                stroke.color.g(),
-                stroke.color.b(),
-                24,
-            ),
-        ),
-    );
-    draw_arc(painter, center, radius, 0.0, ratio, stroke);
-    let tip = point_on_circle(center, radius, ratio);
-    painter.circle_filled(tip, stroke.width * 0.7, stroke.color);
 }
 
 fn draw_countdown_arc(
@@ -823,6 +1125,28 @@ fn draw_arc(
         points.push(point_on_circle(center, radius, start_ratio + sweep * t));
     }
     painter.add(egui::Shape::line(points, stroke));
+}
+
+fn draw_wrapped_arc(
+    painter: &Painter,
+    center: Pos2,
+    radius: f32,
+    start_ratio: f32,
+    end_ratio: f32,
+    stroke: Stroke,
+) {
+    let start = normalize_ratio(start_ratio);
+    let end = normalize_ratio(end_ratio);
+    if start <= end {
+        draw_arc(painter, center, radius, start, end, stroke);
+    } else {
+        draw_arc(painter, center, radius, start, 1.0, stroke);
+        draw_arc(painter, center, radius, 0.0, end, stroke);
+    }
+}
+
+fn normalize_ratio(ratio: f32) -> f32 {
+    ratio.rem_euclid(1.0)
 }
 
 fn draw_info_panel(ui: &mut egui::Ui, rect: Rect, now: &DateTime<Local>, app: &mut ClockApp) {
@@ -975,6 +1299,11 @@ fn draw_info_panel(ui: &mut egui::Ui, rect: Rect, now: &DateTime<Local>, app: &m
                                 DialStyle::Roman,
                                 DialStyle::Roman.label(),
                             );
+                            ui.selectable_value(
+                                &mut app.dial_style,
+                                DialStyle::None,
+                                DialStyle::None.label(),
+                            );
                         });
 
                     ui.add_space(6.0);
@@ -1109,13 +1438,15 @@ fn draw_active_countdown(ui: &mut egui::Ui, app: &mut ClockApp) {
                                                 "Click to show on face"
                                             })
                                             .size(13.0)
-                                            .color(if *is_finished {
-                                                Color32::from_rgb(255, 129, 129)
-                                            } else if Some(*id) == selected_id {
-                                                Color32::from_rgb(255, 196, 196)
-                                            } else {
-                                                Color32::from_rgb(118, 132, 158)
-                                            }),
+                                            .color(
+                                                if *is_finished {
+                                                    Color32::from_rgb(255, 129, 129)
+                                                } else if Some(*id) == selected_id {
+                                                    Color32::from_rgb(255, 196, 196)
+                                                } else {
+                                                    Color32::from_rgb(118, 132, 158)
+                                                },
+                                            ),
                                         );
                                     });
                                 });
