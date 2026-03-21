@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-eframe = { version = "0.26", features = ["glow"] }
+eframe = { version = "0.33.3", features = ["glow"] }
 chrono = "0.4"
