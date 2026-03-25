@@ -296,20 +296,70 @@ fn draw_background(painter: &Painter, rect: Rect) {
     );
     let bottom_glow = Pos2::new(rect.center().x, rect.bottom() - rect.height() * 0.12);
 
+    // Left blue glow — multi-layer natural falloff
+    painter.circle_filled(
+        left_glow,
+        rect.height() * 0.52,
+        Color32::from_rgba_unmultiplied(50, 80, 200, 6),
+    );
+    painter.circle_filled(
+        left_glow,
+        rect.height() * 0.42,
+        Color32::from_rgba_unmultiplied(60, 95, 230, 12),
+    );
     painter.circle_filled(
         left_glow,
         rect.height() * 0.34,
-        Color32::from_rgba_unmultiplied(70, 110, 255, 26),
+        Color32::from_rgba_unmultiplied(70, 110, 255, 22),
+    );
+    painter.circle_filled(
+        left_glow,
+        rect.height() * 0.22,
+        Color32::from_rgba_unmultiplied(80, 125, 255, 14),
+    );
+
+    // Right teal glow — multi-layer
+    painter.circle_filled(
+        right_glow,
+        rect.height() * 0.36,
+        Color32::from_rgba_unmultiplied(60, 170, 160, 5),
+    );
+    painter.circle_filled(
+        right_glow,
+        rect.height() * 0.28,
+        Color32::from_rgba_unmultiplied(72, 190, 180, 12),
     );
     painter.circle_filled(
         right_glow,
         rect.height() * 0.22,
-        Color32::from_rgba_unmultiplied(87, 211, 199, 20),
+        Color32::from_rgba_unmultiplied(87, 211, 199, 18),
+    );
+    painter.circle_filled(
+        right_glow,
+        rect.height() * 0.14,
+        Color32::from_rgba_unmultiplied(100, 225, 210, 10),
+    );
+
+    // Bottom warm glow — multi-layer
+    painter.circle_filled(
+        bottom_glow,
+        rect.width() * 0.40,
+        Color32::from_rgba_unmultiplied(200, 130, 60, 4),
+    );
+    painter.circle_filled(
+        bottom_glow,
+        rect.width() * 0.32,
+        Color32::from_rgba_unmultiplied(230, 155, 75, 8),
     );
     painter.circle_filled(
         bottom_glow,
         rect.width() * 0.28,
         Color32::from_rgba_unmultiplied(255, 176, 92, 12),
+    );
+    painter.circle_filled(
+        bottom_glow,
+        rect.width() * 0.18,
+        Color32::from_rgba_unmultiplied(255, 190, 110, 8),
     );
 }
 
@@ -448,11 +498,26 @@ fn draw_analog_clock(
             }
             painter.circle_filled(
                 center,
+                radius * 0.14,
+                Color32::from_rgba_unmultiplied(255, 180, 60, 6),
+            );
+            painter.circle_filled(
+                center,
+                radius * 0.10,
+                Color32::from_rgba_unmultiplied(255, 192, 80, 18),
+            );
+            painter.circle_filled(
+                center,
                 radius * 0.07,
-                Color32::from_rgba_unmultiplied(255, 199, 92, 48),
+                Color32::from_rgba_unmultiplied(255, 199, 92, 42),
             );
             painter.circle_filled(center, radius * 0.042, Color32::from_rgb(255, 202, 96));
             painter.circle_filled(center, radius * 0.025, Color32::from_rgb(255, 239, 176));
+            painter.circle_filled(
+                Pos2::new(center.x - radius * 0.01, center.y - radius * 0.012),
+                radius * 0.012,
+                Color32::from_rgba_unmultiplied(255, 255, 255, 120),
+            );
         }
         FaceStyle::ArcBands => {
             draw_arc_bands_face(
@@ -505,12 +570,23 @@ fn draw_triangle_sweep_face(
         );
     }
 
+    // Multi-layer centre
     painter.circle_filled(
         center,
-        radius * 0.055,
-        Color32::from_rgba_unmultiplied(255, 255, 255, 24),
+        radius * 0.09,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 8),
     );
-    painter.circle_filled(center, radius * 0.024, Color32::from_rgb(245, 248, 252));
+    painter.circle_filled(
+        center,
+        radius * 0.065,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 18),
+    );
+    painter.circle_filled(center, radius * 0.034, Color32::from_rgb(245, 248, 252));
+    painter.circle_filled(
+        Pos2::new(center.x - radius * 0.008, center.y - radius * 0.01),
+        radius * 0.014,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 110),
+    );
 }
 
 fn draw_arc_bands_face(
@@ -559,12 +635,19 @@ fn draw_arc_bands_face(
         );
     }
 
+    // Multi-layer centre glow
+    painter.circle_filled(
+        center,
+        radius * 0.16,
+        Color32::from_rgba_unmultiplied(100, 125, 185, 5),
+    );
     painter.circle_filled(
         center,
         radius * 0.10,
-        Color32::from_rgba_unmultiplied(132, 150, 196, 16),
+        Color32::from_rgba_unmultiplied(132, 150, 196, 14),
     );
-    painter.circle_filled(center, radius * 0.03, Color32::from_rgb(240, 244, 252));
+    painter.circle_filled(center, radius * 0.045, Color32::from_rgb(240, 244, 252));
+    painter.circle_filled(center, radius * 0.022, Color32::from_rgb(255, 255, 255));
 }
 
 fn draw_triangle_lane(
@@ -575,20 +658,42 @@ fn draw_triangle_lane(
     size: f32,
     color: Color32,
 ) {
+    // Softer double-layer track
+    painter.circle_stroke(
+        center,
+        track_radius,
+        Stroke::new(
+            3.0,
+            Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 7),
+        ),
+    );
     painter.circle_stroke(
         center,
         track_radius,
         Stroke::new(
             1.2,
-            Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 26),
+            Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 22),
         ),
     );
+
+    // Multi-layer position glow
     let glow_pos = point_on_circle(center, track_radius, ratio);
     painter.circle_filled(
         glow_pos,
-        size * 1.25,
-        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 26),
+        size * 2.2,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 8),
     );
+    painter.circle_filled(
+        glow_pos,
+        size * 1.6,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 16),
+    );
+    painter.circle_filled(
+        glow_pos,
+        size * 1.15,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 28),
+    );
+
     draw_triangle_indicator(painter, center, track_radius, ratio, color, size);
 }
 
@@ -603,6 +708,8 @@ fn draw_sweeping_band(
     if end_ratio <= start_ratio {
         return;
     }
+
+    // Outermost soft diffuse glow
     draw_wrapped_arc(
         painter,
         center,
@@ -610,15 +717,16 @@ fn draw_sweeping_band(
         start_ratio,
         end_ratio,
         Stroke::new(
-            stroke.width + 1.3,
+            stroke.width + 4.5,
             Color32::from_rgba_unmultiplied(
                 stroke.color.r(),
                 stroke.color.g(),
                 stroke.color.b(),
-                18,
+                5,
             ),
         ),
     );
+    // Wide glow
     draw_wrapped_arc(
         painter,
         center,
@@ -626,42 +734,130 @@ fn draw_sweeping_band(
         start_ratio,
         end_ratio,
         Stroke::new(
-            stroke.width + 0.5,
+            stroke.width + 2.0,
             Color32::from_rgba_unmultiplied(
                 stroke.color.r(),
                 stroke.color.g(),
                 stroke.color.b(),
-                82,
+                14,
             ),
         ),
     );
+    // Tight glow
+    draw_wrapped_arc(
+        painter,
+        center,
+        radius,
+        start_ratio,
+        end_ratio,
+        Stroke::new(
+            stroke.width + 0.8,
+            Color32::from_rgba_unmultiplied(
+                stroke.color.r(),
+                stroke.color.g(),
+                stroke.color.b(),
+                70,
+            ),
+        ),
+    );
+    // Core arc
     draw_wrapped_arc(painter, center, radius, start_ratio, end_ratio, stroke);
 
+    // Multi-layer head glow
     let head = point_on_circle(center, radius, end_ratio);
     painter.circle_filled(
         head,
-        stroke.width * 0.95,
-        Color32::from_rgba_unmultiplied(stroke.color.r(), stroke.color.g(), stroke.color.b(), 44),
+        stroke.width * 2.4,
+        Color32::from_rgba_unmultiplied(stroke.color.r(), stroke.color.g(), stroke.color.b(), 10),
+    );
+    painter.circle_filled(
+        head,
+        stroke.width * 1.5,
+        Color32::from_rgba_unmultiplied(stroke.color.r(), stroke.color.g(), stroke.color.b(), 28),
+    );
+    painter.circle_filled(
+        head,
+        stroke.width * 0.9,
+        Color32::from_rgba_unmultiplied(stroke.color.r(), stroke.color.g(), stroke.color.b(), 50),
     );
     painter.circle_filled(head, stroke.width * 0.55, stroke.color);
 }
 
 fn draw_face_background(painter: &Painter, center: Pos2, radius: f32) {
+    // Outer glow layers — soft gradient rim
+    painter.circle_filled(
+        center,
+        radius * 1.18,
+        Color32::from_rgba_unmultiplied(60, 100, 220, 4),
+    );
+    painter.circle_filled(
+        center,
+        radius * 1.12,
+        Color32::from_rgba_unmultiplied(80, 120, 240, 7),
+    );
     painter.circle_filled(
         center,
         radius * 1.08,
         Color32::from_rgba_unmultiplied(255, 255, 255, 10),
     );
+
+    // Main face
     painter.circle_filled(center, radius, Color32::from_rgb(15, 20, 32));
+
+    // Inner vignette — darker ring near edge for depth
+    for i in 0..5 {
+        let t = i as f32 / 5.0;
+        let ring_r = radius * (0.78 + t * 0.22);
+        let alpha = (t * t * 16.0) as u8;
+        painter.circle_stroke(
+            center,
+            ring_r,
+            Stroke::new(
+                radius * 0.035,
+                Color32::from_rgba_unmultiplied(0, 0, 0, alpha),
+            ),
+        );
+    }
+
+    // Subtle inner radial glow — lighter towards centre
+    painter.circle_filled(
+        center,
+        radius * 0.55,
+        Color32::from_rgba_unmultiplied(40, 60, 110, 7),
+    );
+    painter.circle_filled(
+        center,
+        radius * 0.32,
+        Color32::from_rgba_unmultiplied(60, 90, 150, 5),
+    );
+
+    // Glass-like highlight — upper-left
+    let hl = Pos2::new(center.x - radius * 0.28, center.y - radius * 0.32);
+    painter.circle_filled(hl, radius * 0.36, Color32::from_rgba_unmultiplied(180, 210, 255, 5));
+    painter.circle_filled(hl, radius * 0.20, Color32::from_rgba_unmultiplied(210, 230, 255, 7));
+
+    // Multi-layer border strokes
     painter.circle_stroke(
         center,
-        radius,
-        Stroke::new(2.0, Color32::from_rgba_unmultiplied(255, 255, 255, 90)),
+        radius + 1.0,
+        Stroke::new(3.0, Color32::from_rgba_unmultiplied(100, 140, 220, 18)),
     );
     painter.circle_stroke(
         center,
+        radius,
+        Stroke::new(1.8, Color32::from_rgba_unmultiplied(255, 255, 255, 72)),
+    );
+    painter.circle_stroke(
+        center,
+        radius - 1.0,
+        Stroke::new(0.8, Color32::from_rgba_unmultiplied(255, 255, 255, 28)),
+    );
+
+    // Inner detail ring
+    painter.circle_stroke(
+        center,
         radius * 0.92,
-        Stroke::new(1.0, Color32::from_rgba_unmultiplied(120, 146, 220, 40)),
+        Stroke::new(0.7, Color32::from_rgba_unmultiplied(120, 146, 220, 26)),
     );
 }
 
@@ -674,10 +870,16 @@ fn draw_luminous_ticks_face(
     minute_ratio: f32,
     second_ratio: Option<f32>,
 ) {
+    // Soft inner ambient
     painter.circle_filled(
         center,
         radius * 0.96,
         Color32::from_rgba_unmultiplied(56, 94, 160, 10),
+    );
+    painter.circle_filled(
+        center,
+        radius * 0.78,
+        Color32::from_rgba_unmultiplied(40, 70, 135, 5),
     );
 
     draw_luminous_ring(
@@ -728,13 +930,24 @@ fn draw_luminous_ticks_face(
         0.82,
     );
 
+    // Multi-layer centre glow
+    painter.circle_filled(
+        center,
+        radius * 0.16,
+        Color32::from_rgba_unmultiplied(100, 160, 255, 8),
+    );
     painter.circle_filled(
         center,
         radius * 0.11,
-        Color32::from_rgba_unmultiplied(132, 190, 255, 30),
+        Color32::from_rgba_unmultiplied(132, 190, 255, 24),
     );
-    painter.circle_filled(center, radius * 0.055, Color32::from_rgb(229, 241, 255));
-    painter.circle_filled(center, radius * 0.028, Color32::from_rgb(106, 221, 255));
+    painter.circle_filled(center, radius * 0.062, Color32::from_rgb(229, 241, 255));
+    painter.circle_filled(center, radius * 0.034, Color32::from_rgb(106, 221, 255));
+    painter.circle_filled(
+        Pos2::new(center.x - radius * 0.014, center.y - radius * 0.016),
+        radius * 0.019,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 95),
+    );
 }
 
 fn draw_standard_ticks(
@@ -799,6 +1012,30 @@ fn draw_luminous_ring(
 ) {
     let ring_radius = (inner_radius + outer_radius) * 0.5;
 
+    // Outermost diffuse glow layer
+    draw_wrapped_arc(
+        painter,
+        center,
+        ring_radius,
+        ratio - tail_span * 1.2,
+        ratio,
+        Stroke::new(
+            stroke_width + 12.0,
+            Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 5),
+        ),
+    );
+    // Wide glow
+    draw_wrapped_arc(
+        painter,
+        center,
+        ring_radius,
+        ratio - tail_span,
+        ratio,
+        Stroke::new(
+            stroke_width + 8.0,
+            Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 10),
+        ),
+    );
     draw_wrapped_arc(
         painter,
         center,
@@ -810,6 +1047,7 @@ fn draw_luminous_ring(
             Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 16),
         ),
     );
+    // Core bright tail
     draw_wrapped_arc(
         painter,
         center,
@@ -840,13 +1078,30 @@ fn draw_luminous_ring(
         painter.line_segment([inner, outer], Stroke::new(width + glow * 2.2, color));
     }
 
+    // Multi-layer head glow
     let head = point_on_circle(center, ring_radius, ratio);
     painter.circle_filled(
         head,
-        stroke_width * 2.6,
+        stroke_width * 4.2,
+        Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 8),
+    );
+    painter.circle_filled(
+        head,
+        stroke_width * 3.0,
+        Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 20),
+    );
+    painter.circle_filled(
+        head,
+        stroke_width * 2.2,
         Color32::from_rgba_unmultiplied(glow_color.r(), glow_color.g(), glow_color.b(), 38),
     );
     painter.circle_filled(head, stroke_width * 1.15, glow_color);
+    // Specular highlight on head dot
+    painter.circle_filled(
+        Pos2::new(head.x - stroke_width * 0.18, head.y - stroke_width * 0.18),
+        stroke_width * 0.45,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 65),
+    );
 }
 
 fn flow_glow(mark_ratio: f32, head_ratio: f32, span: f32) -> f32 {
@@ -936,7 +1191,25 @@ fn draw_hour_minute_hands(
         0.10,
         Stroke::new(4.2, Color32::from_rgb(205, 214, 231)),
     );
+
+    // Multi-layer centre cap with depth
+    painter.circle_filled(
+        center,
+        radius * 0.085,
+        Color32::from_rgba_unmultiplied(180, 200, 240, 16),
+    );
+    painter.circle_filled(
+        center,
+        radius * 0.065,
+        Color32::from_rgba_unmultiplied(220, 232, 248, 36),
+    );
     painter.circle_filled(center, radius * 0.05, Color32::from_rgb(245, 248, 252));
+    // Tiny highlight for specular illusion
+    painter.circle_filled(
+        Pos2::new(center.x - radius * 0.012, center.y - radius * 0.014),
+        radius * 0.022,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 90),
+    );
 }
 
 fn draw_second_hand(
@@ -955,8 +1228,35 @@ fn draw_second_hand(
         0.18,
         Stroke::new(2.2, accent),
     );
+
+    // Tip glow
+    let tip = point_on_circle(center, radius * 0.88, second_ratio);
+    painter.circle_filled(
+        tip,
+        radius * 0.04,
+        Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 28),
+    );
+    painter.circle_filled(
+        tip,
+        radius * 0.02,
+        Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 55),
+    );
+
+    // Counterweight with soft glow
     let counterweight = point_on_circle(center, radius * 0.18, second_ratio + 0.5);
+    painter.circle_filled(
+        counterweight,
+        radius * 0.028,
+        Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 40),
+    );
     painter.circle_filled(counterweight, radius * 0.018, accent);
+
+    // Centre accent
+    painter.circle_filled(
+        center,
+        radius * 0.038,
+        Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 38),
+    );
     painter.circle_filled(center, radius * 0.025, accent);
 }
 
@@ -973,20 +1273,48 @@ fn draw_triangle_indicator(
     let angle = ratio_to_angle(ratio);
     let tangent = Vec2::new(-(angle.sin()), angle.cos()) * (size * 0.56);
     let points = vec![tip, base_center + tangent, base_center - tangent];
-    painter.add(egui::Shape::convex_polygon(points, color, Stroke::NONE));
+
+    // Glow behind triangle
     painter.circle_filled(
         tip,
-        size * 0.22,
-        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 110),
+        size * 0.7,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 18),
+    );
+
+    painter.add(egui::Shape::convex_polygon(points, color, Stroke::NONE));
+
+    // Tip highlight
+    painter.circle_filled(
+        tip,
+        size * 0.26,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 55),
+    );
+    painter.circle_filled(
+        tip,
+        size * 0.14,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 150),
     );
 }
 
 fn draw_orbit_tracks(painter: &Painter, center: Pos2, radius: f32) {
     for track_radius in [radius * 0.47, radius * 0.69, radius * 0.87] {
+        // Soft outer glow
         painter.circle_stroke(
             center,
             track_radius,
-            Stroke::new(1.2, Color32::from_rgba_unmultiplied(170, 180, 205, 52)),
+            Stroke::new(4.0, Color32::from_rgba_unmultiplied(140, 155, 195, 8)),
+        );
+        // Medium glow
+        painter.circle_stroke(
+            center,
+            track_radius,
+            Stroke::new(2.2, Color32::from_rgba_unmultiplied(155, 170, 205, 18)),
+        );
+        // Core track
+        painter.circle_stroke(
+            center,
+            track_radius,
+            Stroke::new(0.9, Color32::from_rgba_unmultiplied(170, 180, 205, 40)),
         );
     }
 }
@@ -1000,12 +1328,46 @@ fn draw_orbit_dot(
     color: Color32,
 ) {
     let pos = point_on_circle(center, track_radius, ratio);
+
+    // Trail — several fading dots behind
+    for i in 1..=5 {
+        let trail_ratio = ratio - (i as f32 * 0.005);
+        let trail_pos = point_on_circle(center, track_radius, trail_ratio);
+        let trail_alpha = (22.0 - i as f32 * 3.8).max(0.0) as u8;
+        let trail_size = dot_radius * (1.0 - i as f32 * 0.1);
+        painter.circle_filled(
+            trail_pos,
+            trail_size,
+            Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), trail_alpha),
+        );
+    }
+
+    // Multi-layer glow
     painter.circle_filled(
         pos,
-        dot_radius * 1.9,
+        dot_radius * 3.2,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 8),
+    );
+    painter.circle_filled(
+        pos,
+        dot_radius * 2.3,
+        Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 18),
+    );
+    painter.circle_filled(
+        pos,
+        dot_radius * 1.6,
         Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 32),
     );
+
+    // Main dot
     painter.circle_filled(pos, dot_radius, color);
+
+    // Inner highlight
+    painter.circle_filled(
+        Pos2::new(pos.x - dot_radius * 0.2, pos.y - dot_radius * 0.22),
+        dot_radius * 0.42,
+        Color32::from_rgba_unmultiplied(255, 255, 255, 50),
+    );
 }
 
 fn draw_arc_tracks(painter: &Painter, center: Pos2, radius: f32, show_seconds: bool) {
@@ -1013,13 +1375,32 @@ fn draw_arc_tracks(painter: &Painter, center: Pos2, radius: f32, show_seconds: b
         if !show_seconds && track_radius > radius * 0.8 {
             continue;
         }
+        // Soft outer glow
         draw_arc(
             painter,
             center,
             track_radius,
             0.0,
             1.0,
-            Stroke::new(1.4, Color32::from_rgba_unmultiplied(160, 172, 198, 34)),
+            Stroke::new(4.0, Color32::from_rgba_unmultiplied(130, 145, 180, 7)),
+        );
+        // Medium glow
+        draw_arc(
+            painter,
+            center,
+            track_radius,
+            0.0,
+            1.0,
+            Stroke::new(2.0, Color32::from_rgba_unmultiplied(150, 165, 195, 16)),
+        );
+        // Core track
+        draw_arc(
+            painter,
+            center,
+            track_radius,
+            0.0,
+            1.0,
+            Stroke::new(0.9, Color32::from_rgba_unmultiplied(160, 172, 198, 28)),
         );
     }
 }
@@ -1083,15 +1464,46 @@ fn draw_hand(
 ) {
     let tip = point_on_circle(center, radius * length_factor, ratio);
     let tail = point_on_circle(center, radius * tail_factor, ratio + 0.5);
-    let shadow_offset = Vec2::new(radius * 0.01, radius * 0.014);
+    let shadow_offset = Vec2::new(radius * 0.012, radius * 0.016);
 
+    // Three-layer progressive shadow for depth
+    painter.line_segment(
+        [tail + shadow_offset * 2.5, tip + shadow_offset * 2.5],
+        Stroke::new(
+            stroke.width + 6.0,
+            Color32::from_rgba_unmultiplied(0, 0, 0, 14),
+        ),
+    );
+    painter.line_segment(
+        [tail + shadow_offset * 1.6, tip + shadow_offset * 1.6],
+        Stroke::new(
+            stroke.width + 3.5,
+            Color32::from_rgba_unmultiplied(0, 0, 0, 30),
+        ),
+    );
     painter.line_segment(
         [tail + shadow_offset, tip + shadow_offset],
         Stroke::new(
-            stroke.width + 2.0,
-            Color32::from_rgba_unmultiplied(0, 0, 0, 70),
+            stroke.width + 1.8,
+            Color32::from_rgba_unmultiplied(0, 0, 0, 52),
         ),
     );
+
+    // Subtle colour glow beneath the hand
+    painter.line_segment(
+        [tail, tip],
+        Stroke::new(
+            stroke.width + 2.8,
+            Color32::from_rgba_unmultiplied(
+                stroke.color.r(),
+                stroke.color.g(),
+                stroke.color.b(),
+                16,
+            ),
+        ),
+    );
+
+    // Main hand
     painter.line_segment([tail, tip], stroke);
 }
 
