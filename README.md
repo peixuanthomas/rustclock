@@ -47,6 +47,25 @@ cargo build --release
 
 > 提示：前端是纯静态文件，修改 `ui/` 下的内容后重新运行即可生效。
 
+## macOS 安装说明（重要）
+
+从 GitHub Release 下载 `.dmg` 安装后，若双击提示 **「"Clock" 已损坏，无法打开，您应该将它移到废纸篓」**，
+这**不是文件真的损坏**，而是 macOS Gatekeeper 对「未经 Apple 公证的应用」的拦截
+（本项目默认未购买付费的 Apple 开发者证书做公证）。
+
+解决办法：把 Clock 拖入「应用程序」后，在「终端」执行一次以下命令解除隔离属性即可正常打开：
+
+```bash
+xattr -cr /Applications/Clock.app
+```
+
+> Apple Silicon（M 系列）芯片请下载文件名带 `aarch64` 的 DMG；Intel 芯片请下载带 `x64` 的 DMG。
+>
+> 维护者若拥有付费 Apple Developer 账号，可在仓库的 GitHub Secrets 中配置
+> `APPLE_SIGNING_IDENTITY`、`APPLE_CERTIFICATE`、`APPLE_CERTIFICATE_PASSWORD`、
+> `APPLE_ID`、`APPLE_PASSWORD`、`APPLE_TEAM_ID`，发布流程会自动进行 Developer ID
+> 签名与公证，用户即可直接双击打开、无需上面的命令。
+
 ## 使用说明
 
 - 在右侧面板中可调整 `Face`、`Dial`、`Smooth hands`、`Show second hand` 等显示选项。

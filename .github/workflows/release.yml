@@ -55,10 +55,36 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # --- macOS code signing & notarization ---
+          # If the Apple* secrets are configured, the .app/.dmg are signed with a
+          # Developer ID certificate and notarized, so users can open them directly.
+          # If they are NOT set, APPLE_SIGNING_IDENTITY falls back to "-" (ad-hoc
+          # signing) and notarization is skipped — in that case users must clear the
+          # quarantine attribute after download (see the release notes / README).
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Clock ${{ github.ref_name }}"
-          releaseBody: "Desktop clock built with Tauri. Download the installer for your platform below."
+          releaseBody: |
+            Desktop clock built with Tauri. Download the installer for your platform below.
+
+            ### macOS users — "Clock 已损坏，无法打开" / "Clock is damaged"
+            The app is distributed without a paid Apple notarization, so Gatekeeper
+            blocks it on first launch. The app is **not** actually damaged. After
+            dragging Clock into Applications, run this once in Terminal:
+
+            ```bash
+            xattr -cr /Applications/Clock.app
+            ```
+
+            Then open it normally. (Pick the `aarch64` DMG for Apple Silicon, the
+            `x64` DMG for Intel Macs.)
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
