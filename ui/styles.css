@@ -50,8 +50,10 @@ body {
 }
 
 /* ---------------- Clock ---------------- */
+/* The clock fills the left region; the panel is a fixed column on the right. */
 .clock-wrap {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
   height: 100%;
   display: flex;
   align-items: center;
@@ -61,7 +63,8 @@ body {
 .clock {
   position: relative;
   aspect-ratio: 1 / 1;
-  height: min(96%, 92vh);
+  /* Square fitted to whichever is smaller: the available height or width. */
+  height: 92%;
   max-width: 100%;
 }
 
@@ -158,9 +161,8 @@ body {
 
 /* ---------------- Panel (frosted glass) ---------------- */
 .panel {
-  flex: 1 1 0;
-  max-width: 560px;
-  min-width: 320px;
+  flex: 0 0 auto;
+  width: clamp(340px, 34vw, 540px);
   height: min(92%, 88vh);
   background: var(--panel-glass);
   border: 1px solid var(--panel-border);
@@ -387,6 +389,58 @@ h2 {
   height: 18px;
   accent-color: #4e8aff;
   cursor: pointer;
+}
+
+/* ---------------- Confirm modal ---------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 7, 14, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.modal-overlay.hidden {
+  display: none;
+}
+.modal {
+  width: min(90vw, 380px);
+  padding: 26px 26px 22px;
+  background: rgba(18, 25, 40, 0.92);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.modal-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #f4f7fc;
+}
+.modal-msg {
+  margin: 0 0 22px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #bcc7dd;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.modal-actions .btn {
+  margin: 0;
+}
+.btn-danger {
+  background: rgba(255, 84, 84, 0.18);
+  border-color: rgba(255, 84, 84, 0.5);
+}
+.btn-danger:hover {
+  background: rgba(255, 84, 84, 0.3);
+  border-color: rgba(255, 84, 84, 0.7);
 }
 
 .footer-hint {

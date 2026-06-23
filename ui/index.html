@@ -121,12 +121,24 @@
             <span>Show second hand</span>
           </label>
 
-          <button class="btn" id="btn-fs">Exit fullscreen</button>
+          <button class="btn btn-danger" id="btn-close">Close</button>
         </div>
       </aside>
     </main>
 
     <div class="footer-hint">F11 Toggle Fullscreen&nbsp;&nbsp;|&nbsp;&nbsp;Esc Exit Fullscreen</div>
+
+    <!-- Close confirmation (shown only when a countdown is running) -->
+    <div class="modal-overlay hidden" id="close-modal">
+      <div class="modal">
+        <p class="modal-title">Close app?</p>
+        <p class="modal-msg">A countdown is still running. Stop it and close the app?</p>
+        <div class="modal-actions">
+          <button class="btn" id="close-cancel">Cancel</button>
+          <button class="btn btn-danger" id="close-confirm">Stop &amp; Close</button>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>

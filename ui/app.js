@@ -345,15 +345,44 @@ function countdownArc(nowPerf) {
 const cdListEl = document.getElementById("cd-list");
 const cdEmptyEl = document.getElementById("cd-empty");
 
+// Cards are built once per change to the timer set and updated in place every
+// frame. Rebuilding innerHTML on each frame would destroy the node a click
+// started on before mouseup, so click events (select / delete) never fired.
+let renderedSig = "";
+
+function buildCdCards() {
+  let html = "";
+  for (const c of countdowns) {
+    html += `<div class="cd-card" data-id="${c.id}">
+      <div class="cd-time"></div>
+      <div class="cd-note"></div>
+      <button class="cd-del" data-id="${c.id}">Delete</button>
+    </div>`;
+  }
+  cdListEl.innerHTML = html;
+}
+
 function renderCdList(nowPerf) {
   if (!countdowns.length) {
     cdEmptyEl.classList.remove("hidden");
     if (cdListEl.childElementCount) cdListEl.innerHTML = "";
+    renderedSig = "";
     return;
   }
   cdEmptyEl.classList.add("hidden");
-  let html = "";
-  for (const c of countdowns) {
+
+  // Rebuild the DOM only when the set of timers changes.
+  const sig = countdowns.map((c) => c.id).join(",");
+  if (sig !== renderedSig) {
+    buildCdCards();
+    renderedSig = sig;
+  }
+
+  const cards = cdListEl.children;
+  for (let i = 0; i < countdowns.length; i++) {
+    const c = countdowns[i];
+    const card = cards[i];
+    if (!card) continue;
     const remainingMs = c.total * 1000 - (nowPerf - c.start);
     const display = remainingMs <= 0 ? 0 : Math.ceil(remainingMs / 1000);
     const finished = c.finishedAt !== null;
@@ -364,13 +393,13 @@ function renderCdList(nowPerf) {
       : sel
       ? "Shown on analog face"
       : "Click to show on face";
-    html += `<div class="cd-card${sel ? " selected" : ""}${finished ? " finished" : ""}${flash ? " flash" : ""}" data-id="${c.id}">
-      <div class="cd-time">${fmtHMS(display)}</div>
-      <div class="cd-note">${note}</div>
-      <button class="cd-del" data-id="${c.id}">Delete</button>
-    </div>`;
+
+    card.classList.toggle("selected", sel);
+    card.classList.toggle("finished", finished);
+    card.classList.toggle("flash", flash);
+    card.querySelector(".cd-time").textContent = fmtHMS(display);
+    card.querySelector(".cd-note").textContent = note;
   }
-  cdListEl.innerHTML = html;
 }
 
 cdListEl.addEventListener("click", (e) => {
@@ -463,9 +492,7 @@ function render() {
   requestAnimationFrame(render);
 }
 
-// ----------------------------- fullscreen ----------------------------------
-const btnFs = document.getElementById("btn-fs");
-
+// ----------------------------- fullscreen / close --------------------------
 function tauriWindow() {
   try {
     return window.__TAURI__?.window?.getCurrentWindow?.() ?? null;
@@ -476,7 +503,6 @@ function tauriWindow() {
 
 async function setFullscreen(v) {
   state.fullscreen = v;
-  btnFs.textContent = v ? "Exit fullscreen" : "Enter fullscreen";
   const w = tauriWindow();
   if (w) {
     try {
@@ -489,6 +515,31 @@ async function setFullscreen(v) {
   }
   if (v) document.documentElement.requestFullscreen?.().catch(() => {});
   else document.exitFullscreen?.().catch(() => {});
+}
+
+async function closeApp() {
+  const w = tauriWindow();
+  if (w) {
+    try {
+      await w.close();
+      return;
+    } catch (_) {
+      /* fall through to browser */
+    }
+  }
+  window.close();
+}
+
+const closeModal = document.getElementById("close-modal");
+
+function requestClose() {
+  // Confirm only when a countdown is still counting down.
+  const running = countdowns.some((c) => c.finishedAt === null);
+  if (running) {
+    closeModal.classList.remove("hidden");
+  } else {
+    closeApp();
+  }
 }
 
 // ----------------------------- wiring --------------------------------------
@@ -509,6 +560,16 @@ function init() {
 
   document.getElementById("cd-start").addEventListener("click", startCountdown);
 
+  // Press Enter in any countdown input to start.
+  for (const id of ["cd-h", "cd-m", "cd-s"]) {
+    document.getElementById(id).addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        startCountdown();
+      }
+    });
+  }
+
   document.getElementById("sel-face").addEventListener("change", (e) => {
     state.face = e.target.value;
   });
@@ -521,14 +582,25 @@ function init() {
   document.getElementById("chk-second").addEventListener("change", (e) => {
     state.showSecond = e.target.checked;
   });
-  btnFs.addEventListener("click", () => setFullscreen(!state.fullscreen));
+  document.getElementById("btn-close").addEventListener("click", requestClose);
+  document.getElementById("close-cancel").addEventListener("click", () => {
+    closeModal.classList.add("hidden");
+  });
+  document.getElementById("close-confirm").addEventListener("click", closeApp);
+  closeModal.addEventListener("click", (e) => {
+    if (e.target === closeModal) closeModal.classList.add("hidden");
+  });
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "F11") {
       e.preventDefault();
       setFullscreen(!state.fullscreen);
-    } else if (e.key === "Escape" && state.fullscreen) {
-      setFullscreen(false);
+    } else if (e.key === "Escape") {
+      if (!closeModal.classList.contains("hidden")) {
+        closeModal.classList.add("hidden");
+      } else if (state.fullscreen) {
+        setFullscreen(false);
+      }
     }
   });
 
