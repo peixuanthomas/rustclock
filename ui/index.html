@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clock</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient"></div>
+
+    <main id="app">
+      <!-- Analog clock -->
+      <section class="clock-wrap">
+        <div class="clock" id="clock">
+          <svg
+            id="clock-svg"
+            viewBox="0 0 1000 1000"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <radialGradient id="face-grad" cx="38%" cy="34%" r="75%">
+                <stop offset="0%" stop-color="rgba(46,66,110,0.55)" />
+                <stop offset="55%" stop-color="rgba(16,22,38,0.62)" />
+                <stop offset="100%" stop-color="rgba(8,11,20,0.78)" />
+              </radialGradient>
+              <radialGradient id="cap-grad" cx="40%" cy="35%" r="70%">
+                <stop offset="0%" stop-color="#f6f9fc" />
+                <stop offset="100%" stop-color="#aebdd6" />
+              </radialGradient>
+
+              <!-- Real gaussian-blur glow filters (the web upgrade over stacked circles) -->
+              <filter id="glow2" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+                <feGaussianBlur stdDeviation="3" />
+              </filter>
+              <filter id="glow4" x="-80%" y="-80%" width="260%" height="260%" color-interpolation-filters="sRGB">
+                <feGaussianBlur stdDeviation="6" />
+              </filter>
+              <filter id="glow8" x="-120%" y="-120%" width="340%" height="340%" color-interpolation-filters="sRGB">
+                <feGaussianBlur stdDeviation="12" />
+              </filter>
+              <filter id="glow16" x="-160%" y="-160%" width="420%" height="420%" color-interpolation-filters="sRGB">
+                <feGaussianBlur stdDeviation="22" />
+              </filter>
+              <filter id="handShadow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+                <feDropShadow dx="3" dy="5" stdDeviation="5" flood-color="#000" flood-opacity="0.45" />
+              </filter>
+            </defs>
+
+            <!-- static face -->
+            <g id="face"></g>
+            <!-- redrawn every frame -->
+            <g id="dyn"></g>
+          </svg>
+
+          <!-- Frosted-glass hands live in the DOM so CSS backdrop-filter can blur
+               the colourful ambient light behind them -->
+          <div class="hands" id="hands" hidden>
+            <div class="fhand hour" id="fh-hour"></div>
+            <div class="fhand minute" id="fh-min"></div>
+            <div class="fhand second" id="fh-sec"></div>
+            <div class="fcap" id="fcap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Info / controls panel -->
+      <aside class="panel" id="panel">
+        <div class="panel-scroll">
+          <p class="eyebrow">LOCAL TIME</p>
+          <div class="time-row">
+            <span class="time-main" id="t-time">00:00</span>
+            <span class="time-sec" id="t-sec">00</span>
+          </div>
+          <p class="date" id="t-date">0000-00-00</p>
+          <p class="weekday" id="t-weekday">—</p>
+
+          <hr />
+
+          <p class="eyebrow">COUNTDOWN</p>
+          <div class="cd-inputs">
+            <input id="cd-h" inputmode="numeric" maxlength="3" placeholder="HH" />
+            <span class="colon">:</span>
+            <input id="cd-m" inputmode="numeric" maxlength="2" placeholder="MM" />
+            <span class="colon">:</span>
+            <input id="cd-s" inputmode="numeric" maxlength="2" placeholder="SS" />
+          </div>
+          <button class="btn" id="cd-start">Start countdown</button>
+          <div class="cd-list" id="cd-list"></div>
+          <p class="muted" id="cd-empty">No active countdowns</p>
+
+          <hr />
+
+          <h2>Display Settings</h2>
+          <label class="field">
+            <span>Face</span>
+            <select id="sel-face">
+              <option value="classic">Classic hands</option>
+              <option value="frosted">Frosted glass</option>
+              <option value="luminous">Luminous ticks</option>
+              <option value="triangle">Triangle sweep</option>
+              <option value="orbit">Orbit dots</option>
+              <option value="arc">Arc bands</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Dial</span>
+            <select id="sel-dial">
+              <option value="arabic">Arabic numerals</option>
+              <option value="roman">Roman numerals</option>
+              <option value="none">No numerals</option>
+            </select>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" id="chk-smooth" checked />
+            <span>Smooth hands</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="chk-second" checked />
+            <span>Show second hand</span>
+          </label>
+
+          <button class="btn" id="btn-fs">Exit fullscreen</button>
+        </div>
+      </aside>
+    </main>
+
+    <div class="footer-hint">F11 Toggle Fullscreen&nbsp;&nbsp;|&nbsp;&nbsp;Esc Exit Fullscreen</div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

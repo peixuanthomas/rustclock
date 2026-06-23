@@ -1,0 +1,425 @@
+:root {
+  --text: #e8eef7;
+  --muted: #8495b9;
+  --accent: #ffbd5c;
+  --panel-glass: rgba(14, 20, 32, 0.46);
+  --panel-border: rgba(255, 255, 255, 0.16);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #060911;
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+/* Ambient coloured light that the frosted glass blurs over. */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(38vw 38vw at 24% 50%, rgba(70, 110, 255, 0.30), transparent 70%),
+    radial-gradient(26vw 26vw at 82% 24%, rgba(90, 215, 200, 0.22), transparent 70%),
+    radial-gradient(30vw 30vw at 50% 92%, rgba(255, 176, 92, 0.18), transparent 70%),
+    #060911;
+  filter: saturate(115%);
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  padding: 30px 40px;
+}
+
+/* ---------------- Clock ---------------- */
+.clock-wrap {
+  flex: 0 0 auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clock {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  height: min(96%, 92vh);
+  max-width: 100%;
+}
+
+#clock-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Frosted-glass hands overlay */
+.hands {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hands[hidden] {
+  display: none;
+}
+
+.fhand {
+  position: absolute;
+  left: 50%;
+  transform-origin: 50% 100%;
+  border-radius: 999px;
+  /* the real frosted glass: blur + brighten the ambient light behind the blade */
+  -webkit-backdrop-filter: blur(7px) saturate(150%) brightness(1.18);
+  backdrop-filter: blur(7px) saturate(150%) brightness(1.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    inset 6px 0 12px rgba(255, 255, 255, 0.22),
+    0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.fhand::after {
+  /* specular streak down one edge */
+  content: "";
+  position: absolute;
+  top: 6%;
+  left: 22%;
+  width: 22%;
+  height: 88%;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.05)
+  );
+  filter: blur(1px);
+}
+.fhand.hour {
+  width: 3.4%;
+  height: 27%;
+  top: 23%;
+  background: rgba(150, 185, 235, 0.16);
+}
+.fhand.minute {
+  width: 2.5%;
+  height: 37%;
+  top: 13%;
+  background: rgba(180, 205, 245, 0.15);
+}
+.fhand.second {
+  width: 1.3%;
+  height: 41%;
+  top: 9%;
+  background: rgba(255, 190, 140, 0.18);
+  -webkit-backdrop-filter: blur(4px) saturate(160%) brightness(1.2);
+  backdrop-filter: blur(4px) saturate(160%) brightness(1.2);
+}
+.fcap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6%;
+  height: 6%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(220, 235, 255, 0.22);
+  -webkit-backdrop-filter: blur(8px) saturate(150%) brightness(1.2);
+  backdrop-filter: blur(8px) saturate(150%) brightness(1.2);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.fcap::after {
+  content: "";
+  position: absolute;
+  inset: 32%;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.85;
+}
+
+/* ---------------- Panel (frosted glass) ---------------- */
+.panel {
+  flex: 1 1 0;
+  max-width: 560px;
+  min-width: 320px;
+  height: min(92%, 88vh);
+  background: var(--panel-glass);
+  border: 1px solid var(--panel-border);
+  border-radius: 28px;
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.panel-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 30px 32px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.panel-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 15px;
+  letter-spacing: 2.6px;
+  color: #849cc9;
+}
+.time-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.time-main {
+  font-size: 76px;
+  line-height: 0.95;
+  font-family: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  color: #f5f8fc;
+  font-variant-numeric: tabular-nums;
+}
+.time-sec {
+  font-size: 34px;
+  font-family: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  color: var(--accent);
+  padding-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s;
+}
+.time-sec.off {
+  color: #8795af;
+}
+.date {
+  margin: 14px 0 2px;
+  font-size: 28px;
+  color: #dde4f0;
+}
+.weekday {
+  margin: 0;
+  font-size: 24px;
+  color: #a4b3d1;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 24px 0 18px;
+}
+h2 {
+  margin: 0 0 14px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #f4f7fc;
+}
+
+.cd-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.cd-inputs input {
+  width: 64px;
+  text-align: center;
+  font-size: 22px;
+  font-family: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  padding: 8px 4px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  outline: none;
+}
+.cd-inputs input:focus {
+  border-color: rgba(120, 170, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+}
+.colon {
+  font-size: 22px;
+  color: #8c98b2;
+}
+
+.btn {
+  display: inline-block;
+  margin: 4px 0 6px;
+  padding: 10px 18px;
+  font-size: 16px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.btn:active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.cd-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0 6px;
+}
+.cd-card {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cd-card:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.cd-card.selected {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 84, 84, 0.55);
+}
+.cd-time {
+  font-size: 28px;
+  font-family: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.cd-card.finished .cd-time {
+  color: #ff5454;
+}
+.cd-card.finished.flash .cd-time {
+  color: #6e2a2a;
+}
+.cd-note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cd-card.selected .cd-note {
+  color: #ffc4c4;
+}
+.cd-card.finished .cd-note {
+  color: #ff8181;
+}
+.cd-del {
+  margin-top: 10px;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  cursor: pointer;
+}
+.cd-del:hover {
+  background: rgba(255, 90, 90, 0.22);
+}
+.muted {
+  color: #76849e;
+  font-size: 18px;
+  margin: 10px 0;
+}
+.muted.hidden {
+  display: none;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+  font-size: 17px;
+  color: #cfd9ec;
+}
+.field select {
+  flex: 0 0 auto;
+  min-width: 190px;
+  font-size: 16px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: rgba(20, 28, 44, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  outline: none;
+  cursor: pointer;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 17px;
+  color: #cfd9ec;
+  cursor: pointer;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #4e8aff;
+  cursor: pointer;
+}
+
+.footer-hint {
+  position: fixed;
+  left: 28px;
+  bottom: 24px;
+  z-index: 2;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: #aab5c9;
+  background: rgba(9, 14, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* Stack vertically when the window is tall/narrow. */
+@media (max-aspect-ratio: 6 / 5) {
+  #app {
+    flex-direction: column;
+    gap: 18px;
+    padding: 24px 28px;
+  }
+  .clock {
+    height: auto;
+    width: min(86vw, 56vh);
+  }
+  .panel {
+    width: 100%;
+    max-width: 720px;
+    height: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}

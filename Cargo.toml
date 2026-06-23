@@ -3,6 +3,13 @@ name = "clock"
 version = "0.1.0"
 edition = "2021"
 
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
 [dependencies]
-eframe = { version = "0.33.3", features = ["glow"] }
-chrono = "0.4"
+tauri = { version = "2", features = [] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
