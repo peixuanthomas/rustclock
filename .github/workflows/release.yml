@@ -51,23 +51,45 @@ jobs:
         with:
           workspaces: ". -> target"
 
-      - name: Build and release with Tauri
-        uses: tauri-apps/tauri-action@v0
+      # --- macOS code signing & notarization ---
+      # Expose the Apple secrets to the build ONLY when a certificate is actually
+      # configured. Passing an empty APPLE_CERTIFICATE makes Tauri attempt (and
+      # fail) a `security import` of an empty certificate. When no cert is present
+      # we fall back to ad-hoc signing ("-"); users then clear the quarantine
+      # attribute after download (see the release notes / README).
+      - name: Configure Apple code signing
+        if: startsWith(matrix.platform, 'macos')
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # --- macOS code signing & notarization ---
-          # If the Apple* secrets are configured, the .app/.dmg are signed with a
-          # Developer ID certificate and notarized, so users can open them directly.
-          # If they are NOT set, APPLE_SIGNING_IDENTITY falls back to "-" (ad-hoc
-          # signing) and notarization is skipped — in that case users must clear the
-          # quarantine attribute after download (see the release notes / README).
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            echo "Apple certificate found — enabling Developer ID signing + notarization."
+            echo "APPLE_CERTIFICATE<<__EOF__" >> "$GITHUB_ENV"
+            echo "$APPLE_CERTIFICATE" >> "$GITHUB_ENV"
+            echo "__EOF__" >> "$GITHUB_ENV"
+            {
+              echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+              echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+              echo "APPLE_ID=$APPLE_ID"
+              echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+              echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD"
+            } >> "$GITHUB_ENV"
+          else
+            echo "No Apple certificate configured — using ad-hoc signing (-)."
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build and release with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Clock ${{ github.ref_name }}"
